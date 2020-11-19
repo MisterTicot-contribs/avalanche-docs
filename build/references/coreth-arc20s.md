@@ -1,4 +1,4 @@
-# Coreth ANTs and ARC20s
+# Coreth ANTs and ARC-20s
 
 ## ANTs on the C-Chain
 
@@ -16,23 +16,23 @@ Therefore, when we want to use smart contract functionality, we must perform an 
 
 ANTs on the C-Chain are either AVAX &emdash; the Avalanche native asset &emdash; or another asset that was created on the X-Chain.
 
-The C-Chain is a modified instance of the EVM, so AVAX on the C-Chain is equivalent to ETH on the Ethereum network. When you create or call a smart contract, you pay for gas costs with AVAX. You can natively transfer AVAX between accounts, send it to a smart contract, all using native EVM tools and libraries.
+The C-Chain is a modified instance of the Ethereum Virtual Machine (EVM), so AVAX on the C-Chain is equivalent to ETH on the Ethereum network. When you create or call a smart contract, you pay for gas costs with AVAX. You can natively transfer AVAX between accounts, send it to a smart contract, all using native EVM tools and libraries.
 
 #### EVM Transaction
 
 An EVM Transaction is composed of the following fields:
 
-* **`nonce`** Scalar value equal to the number of transactions send by the sender
-* **`gasPrice`** Scalar value equal to tthe number of Wei paid per unit of gas to execute this transaction
+* **`nonce`** Scalar value equal to the number of transactions sent by the sender
+* **`gasPrice`** Scalar value equal to the number of Wei (1 Wei = 10^-18 AVAX) paid per unit of gas to execute this transaction
 * **`gasLimit`** Scalar value equal to the maximum amount of gas that should be used in executing this transaction
 * **`to`** The 20 byte address of the message call's recipient. If the transaction is creating a contract, `to` is left empty
-* **`value`** Scalar value of native asset (AVAX) measured in wei to be transferred to the message call's recipient or in the case of a contract creation, as an endowment to the newly created contract.
+* **`value`** Scalar value of native asset (AVAX) measured in Wei (1 Wei = 10^-18 AVAX) to be transferred to the message call's recipient or in the case of a contract creation, as an endowment to the newly created contract.
 * **`v, r, s`** Values corresponding to the signature of the transaction.
-* **`data`** Unlimited size byte array specifying the input data to a contract call or (if creating a contract) the EVM bytecode for the account initialisation process
+* **`data`** Unlimited size byte array specifying the input data to a contract call or (if creating a contract) the EVM bytecode for the account initialization process
 
 #### Native Assets - Tokens
 
-Non-AVAX Assets, however, have no counterpart within the EVM. Therefore, Coreth makes minor modifications to the EVM and state management in order to support asset balances and the ability to transfer these assets on the C-Chain.
+Non-AVAX Assets, however, have no native representation within the EVM. Therefore, Coreth makes minor modifications to the EVM and state management in order to support asset balances and the ability to transfer these assets on the C-Chain.
 
 Non-AVAX Assets (ANTs) are supported on the C-Chain by keeping an account balance mapping [assetID -> balance]. These assets can be exported back to the X-Chain or moved around on the C-Chain using `assetCall` and `assetBalance`.
 
@@ -82,13 +82,13 @@ These arguments can be packed by `abi.encodePacked(...)` in Solidity since all o
                               +-----------------+
 ```
 
-## ARC20s on the C-Chain
+## ARC-20s on the C-Chain
 
-An ARC20 is the Avalanche equivalent of an ERC20. An ERC20 is just a smart contract that maintains balances for accounts and provides an incredibly useful, standardized interface for smart contract developers.
+An ARC-20 is the Avalanche equivalent of an ERC-20. An ERC-20 is just a smart contract that maintains balances for accounts and provides an incredibly useful, standardized interface for smart contract developers.
 
-ERC20s can be deployed directly to the C-Chain without modification, but these contracts do not have a native asset equivalent. Therefore, we create `Wrapped ARC20s` (`WARC20s`) which wrap native assets into an ERC20 interface, so that `ANTs` can be used following the same interface as an ERC20.
+ERC-20s can be deployed directly to the C-Chain without modification, but these contracts do not have a native asset equivalent. Therefore, we create `Wrapped ARC-20s` (`WARC-20s`) which wrap native assets into an ERC-20 interface, so that `ANTs` can be used following the same interface as an ERC-20.
 
-To do this, we can use any ERC20 contract with added `deposit(uint256 amount)` and `withdraw(uint256 amount)` added to their interface. Withdrawals are easy to implement, as the `WARC20` can simply verify that the withdrawer has a sufficient account balance and can then send the asset to the withdrawer.
+To do this, we can use any ERC-20 contract with added `deposit(uint256 amount)` and `withdraw(uint256 amount)` added to their interface. Withdrawals are easy to implement, as the `WARC-20` can simply verify that the withdrawer has a sufficient account balance and can then send the asset to the withdrawer.
 
 For deposits, we need to invoke `assetCall` in order to atomically send a native asset to a contract and then invoke the deposit function, so that the smart contract can acknowledge that it has received the funds and update its balance for the sender.
 
