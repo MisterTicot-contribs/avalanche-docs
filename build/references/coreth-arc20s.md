@@ -14,7 +14,7 @@ Therefore, when we want to use smart contract functionality, we must perform an 
 
 #### Native Coin - AVAX
 
-ANTs on the C-Chain are either AVAX - the Avalanche native asset - or another asset that was created on the X-Chain.
+ANTs on the C-Chain are either AVAX &emdash; the Avalanche native asset &emdash; or another asset that was created on the X-Chain.
 
 The C-Chain is a modified instance of the EVM, so AVAX on the C-Chain is equivalent to ETH on the Ethereum network. When you create or call a smart contract, you pay for gas costs with AVAX. You can natively transfer AVAX between accounts, send it to a smart contract, all using native EVM tools and libraries.
 
@@ -38,9 +38,7 @@ Non-AVAX Assets (ANTs) are supported on the C-Chain by keeping an account balanc
 
 ##### assetCall
 
-`assetCall` is a precompiled contract at address `0xassetCallAddr`. `assetCall` allows users to atomically transfer a native asset to a given address and (optionally) also make a contract call to that same address.
-
-This is parallel to how a normal transaction can send value to some address, and atomically call that address with some `data`.
+`assetCall` is a precompiled contract at address `0xassetCallAddr`. `assetCall` allows users to atomically transfer a native asset to a given address and (optionally) also make a contract call to that same address. This is parallel to how a normal transaction can send value to some address, and atomically call that address with some `data`.
 
 
 ```text
@@ -60,15 +58,13 @@ These arguments can be packed by `abi.encodePacked(...)` in Solidity since there
 +-------------+---------------+--------------------------------+
 | callData    : bytes memory  |            len(callData) bytes |
 +-------------+---------------+--------------------------------+
-                              |       84 * len(callData) bytes |
+                              |       84 + len(callData) bytes |
                               +--------------------------------+
 ```
-
 
 ##### assetBalance
 
 `assetBalance` is a precompiled contract at address `0xassetBalance`. `assetBalance` is the ANT equivalent of using `balance` to get the AVAX balance.
-
 
 ```text
 assetBalance(address addr, uint256 assetID) -> {balance: uint256}
@@ -85,7 +81,6 @@ These arguments can be packed by `abi.encodePacked(...)` in Solidity since all o
                               |        52 bytes |
                               +-----------------+
 ```
-
 
 ## ARC20s on the C-Chain
 
