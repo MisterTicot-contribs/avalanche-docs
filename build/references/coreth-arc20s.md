@@ -18,8 +18,6 @@ ANTs on the C-Chain are either AVAX &emdash; the Avalanche native asset &emdash;
 
 The C-Chain is a modified instance of the Ethereum Virtual Machine (EVM), so AVAX on the C-Chain is equivalent to ETH on the Ethereum network. When you create or call a smart contract, you pay for gas costs with AVAX. You can natively transfer AVAX between accounts, send it to a smart contract, all using native EVM tools and libraries.
 
-#### EVM Transaction
-
 An EVM Transaction is composed of the following fields:
 
 * **`nonce`** Scalar value equal to the number of transactions sent by the sender
@@ -84,15 +82,42 @@ These arguments can be packed by `abi.encodePacked(...)` in Solidity since all o
 
 ## ARC-20s on the C-Chain
 
-An ARC-20 is the Avalanche equivalent of an ERC-20. An ERC-20 is just a smart contract that maintains balances for accounts and provides an incredibly useful, standardized interface for smart contract developers.
+An ARC-20 is the Avalanche equivalent of an ERC-20.
 
-ERC-20s can be deployed directly to the C-Chain without modification, but these contracts do not have a native asset equivalent. Therefore, we create `Wrapped ARC-20s` (`WARC-20s`) which wrap native assets into an ERC-20 interface, so that `ANTs` can be used following the same interface as an ERC-20.
+### What is an ERC-20
 
-To do this, we can use any ERC-20 contract with added `deposit(uint256 amount)` and `withdraw(uint256 amount)` added to their interface. Withdrawals are easy to implement, as the `WARC-20` can simply verify that the withdrawer has a sufficient account balance and can then send the asset to the withdrawer.
+An ERC-20 (Ethereum Request for Comment 20) is a standardized token on Ethereum. It presents a standard set of functions and events that allow a smart contract to serve as a token on Ethereum. For the complete explanation, read the original proposal heree: https://eips.ethereum.org/EIPS/eip-20.
 
-For deposits, we need to invoke `assetCall` in order to atomically send a native asset to a contract and then invoke the deposit function, so that the smart contract can acknowledge that it has received the funds and update its balance for the sender.
+ERC-20s expose the following interface:
 
-This can be done within a smart contract or within a single transaction as follows:
+```boo
+// Functions
+function name() public view returns (string)
+function symbol() public view returns (string)
+function decimals() public view returns (uint8)
+function totalSupply() public view returns (uint256)
+function balanceOf(address _owner) public view returns (uint256 balance)
+function transfer(address _to, uint256 _value) public returns (bool success)
+function transferFrom(address _from, address _to, uint256 _value) public returns (bool success)
+function approve(address _spender, uint256 _value) public returns (bool success)
+function allowance(address _owner, address _spender) public view returns (uint256 remaining)
+
+// Events
+event Transfer(address indexed _from, address indexed _to, uint256 _value)
+event Approval(address indexed _owner, address indexed _spender, uint256 _value)
+```
+
+As a smart contract, ERC-20s maintain their own state. This means that if your account owns 5 DogeCoin (a popular ERC-20), then this is stored as an account balance in the DogeCoin contract, instead of on your account's own storage. Therefore, ERC-20s are second class citizens in the world of Ethereum, but expose a powerful interface enabling a rich world of DeFi.
+
+### From ANT to ARC-20
+
+Avalanceh Native Tokens (ANTs) are stored directly on the account that owns them. In order to make ANTs easier to use in smart contracts on the C-Chain, we would like to give them the same interface as an ERC-20. We'll call this wrapped asset an ARC-20. To do this, we need to create an ERC-20 contract with one additional field: `assetID`. The `assetID` is a unique hash that identifies an asset across the Avalanche Platform.
+
+Now, we will deploy an ERC-20 smart contract with two additional functions to support deposits and withdrawals of the underlying ANT into the contract. To implement this, we will use `assetCall` and `assetBalance` precompiled contracts.
+
+#### ARC-20 Deposits
+
+Similar to WETH, in order to deposit some funds into an ARC-20, we need to send the ARC-20 contract the deposit amount and then invoke the contract's deposit function, so that it can acknowledge the deposit and update its balance for the caller's account. With WETH, this can be accomplished with a simple `call` because this combines sending the native coin to an address and (optionally) calling that address with some `callData`. With non-AVAX ARC-20s, this can be accomplished through the following:
 
 * **`nonce`**: 2
 * **`gasPrice`**: 470 gwei
@@ -100,4 +125,12 @@ This can be done within a smart contract or within a single transaction as follo
 * **`to`**: `0xassetCallAddr`
 * **`value`**: 0
 * **`v, r, s`**: Transaction Signature
-* **`data`**: abi.encodePacked(warc20Address, assetID, assetAmount, abi.encodeWithSignature("deposit(uint256)", assetAmount))
+* **`data`**: abi.encodePacked(arc20Address, assetID, assetAmount, abi.encodeWithSignature("deposit()"))
+
+This transfers `assetAmount` of `assetID` to the addresss of the ARC-20 and then invokes the function `deposit()` on the ARC-20. 
+
+The ARC-20 contract must keep an up to date balance of how much of `assetID` it owns. When it receives a `deposit()` call, it will check its current balance of `assetID` and calculate the deposit amount by subtracting the update balance from what its balance was prior to the call.
+
+#### ARC-20 Withdrawals
+
+Like ERC-20s, ARC-20s maintain an account balance for every account that owns some funds. When an ARC-20 receives a withdraw request, it can simply check that the caller account has a sufficient balance, then use `assetCall` to send the caller the requested amount of the underlying ANT.
